@@ -5,6 +5,7 @@ using System.Web.Mvc;
 using System.Web;
 using System.Xml;
 using System.IO;
+using WeChat.Models;
 
 namespace WeChat.Controllers
 {
@@ -23,31 +24,74 @@ namespace WeChat.Controllers
         /// <param name="signature">微信加密签名</param>
         /// <param name="timestamp">时间戳</param>
         /// <param name="nonce">随机数</param>
-        /// <param name="echostr">随机字符串</param>
-        [HttpGet]
+        /// <param name="echostr">随机字符串</param>        
         public void Wx(string signature, string timestamp, string nonce, string echostr)
         {
-            Console.WriteLine(signature + "," + timestamp + "," + nonce + "," + echostr);
-            //效验请求
-            bool signatureFlag = CheckWeChatServer(signature, timestamp, nonce, echostr);
-            if (signatureFlag)
+            //Get请求处理
+            if (System.Web.HttpContext.Current.Request.HttpMethod.ToUpper() == "Get")
             {
-                System.Web.HttpContext.Current.Response.Write(echostr);
-                System.Web.HttpContext.Current.Response.End();
+                //效验请求
+                bool signatureFlag = CheckWeChatServer(signature, timestamp, nonce, echostr);
+                if (signatureFlag)
+                {
+                    System.Web.HttpContext.Current.Response.Write(echostr);
+                    System.Web.HttpContext.Current.Response.End();
+                }
+                else
+                {
+                    System.Web.HttpContext.Current.Response.Write("签名验证错误！");
+                    System.Web.HttpContext.Current.Response.End();
+                }
             }
-            else
+            //Post请求处理
+            
+            if (System.Web.HttpContext.Current.Request.HttpMethod.ToUpper() == "POST")
             {
-                System.Web.HttpContext.Current.Response.Write("签名验证错误！");
-                System.Web.HttpContext.Current.Response.End();
-            }
+                Stream requestStream = System.Web.HttpContext.Current.Request.InputStream;
+                byte[] requestByte = new byte[requestStream.Length];
+                requestStream.Read(requestByte, 0, (Int32)requestStream.Length);
+                string requestStr = Encoding.UTF8.GetString(requestByte);
 
-          // ProcessRequest(System.Web.HttpContext.Current);
-           // Stream s = VqiRequest.GetInputStream();
+                if (!string.IsNullOrEmpty(requestStr))
+                {
+                    //封装请求类
+                    XmlDocument requestDocXml = new XmlDocument();
+                    requestDocXml.LoadXml(requestStr);
+                    XmlElement rootElement = requestDocXml.DocumentElement;
+                    NewsModel newsModel = new NewsModel();
+                    newsModel.ToUserName = rootElement.SelectSingleNode("ToUserName").InnerText;
+                    newsModel.FromUserName = rootElement.SelectSingleNode("FromUserName").InnerText;
+                    newsModel.CreateTime = rootElement.SelectSingleNode("CreateTime").InnerText;
+                    newsModel.MsgType = rootElement.SelectSingleNode("MsgType").InnerText;
+                    switch (newsModel.MsgType)
+                    {
+                        case "text"://文本
+                            newsModel.Content = rootElement.SelectSingleNode("Content").InnerText;
+                            break;
+                        case "image"://图片
+                            newsModel.PicUrl = rootElement.SelectSingleNode("PicUrl").InnerText;
+                            break;
+                        case "event"://事件
+                            newsModel.Event = rootElement.SelectSingleNode("Event").InnerText;
+                            if (newsModel.Event == "subscribe")//关注类型
+                            {
+                                newsModel.EventKey = rootElement.SelectSingleNode("EventKey").InnerText;
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+                    ResponseXML(newsModel);//回复消息
+                    //bs.Close();
+                    //return Encoding.UTF8.GetString(buff);
+                }
+
+            }
         }
 
-        /// <summary>
-        /// 服务器接入签名计算和比对
-        /// </summary>
+
+
+        #region 服务器接入签名计算和比对
         public bool CheckWeChatServer(string signature, string timestamp, string nonce, string echostr)
         {
             //将token、timestamp、nonce三个参数进行字典序排序
@@ -67,11 +111,9 @@ namespace WeChat.Controllers
                 return false;
             }
         }
+        #endregion
 
-        #region sha1加密
-        /// <summary>
-        /// sha1加密
-        /// </summary>
+        #region sha1加密    
         public string Sha1(string str)
         {
             var buffer = Encoding.UTF8.GetBytes(str);
@@ -87,23 +129,60 @@ namespace WeChat.Controllers
         }
         #endregion
 
-        //[HttpPost]
-        //[ActionName("Wx")]
-        //public void ProcessRequest(HttpContext context)
-        //{
-        //    context.Response.ContentType = "text/plain";
-        //    string postString = string.Empty;
-        //    if (System.Web.HttpContext.Current.Request.HttpMethod.ToUpper() == "POST")
-        //    {
-        //        using (Stream stream = System.Web.HttpContext.Current.Request.InputStream)
-        //        {
-        //            Byte[] postBytes = new Byte[stream.Length];
-        //            stream.Read(postBytes, 0, (Int32)stream.Length);
-        //            postString = Encoding.UTF8.GetString(postBytes);
-        //            Handle(postString);
-        //        }
-        //    }
-        //}
+        #region 消息回复
+        private void ResponseXML(NewsModel newsModel)
+        {
+            string XML = "";
+            switch (newsModel.MsgType)
+            {
+                case "text"://文本回复
+                    XML = ReText(newsModel.FromUserName, newsModel.ToUserName, newsModel.Content);
+                    //XML = @"<xml>
+                    //       <ToUserName><![CDATA[oUwty1vGG0NycDWTDSYeld2ECx5A]]></ToUserName>
+                    //     <FromUserName><![CDATA[gh_1934ee1565bd]]></FromUserName>
+                    //     <CreateTime>1545477435</CreateTime>
+                    //     <MsgType><![CDATA[text]]></MsgType>
+                    //     <Content><![CDATA[/::)]]></Content>
+                    //     <MsgId>6637775040451722077</MsgId>
+                    //       </xml>";
+                    ////TOKEN.com.wxapi.ResponseMessage.GetText(newsModel.FromUserName, newsModel.ToUserName, newsModel.Content);
+                    break;
+                default://默认回复
+                    break;
+            }
+            System.Web.HttpContext.Current.Response.Write(XML);
+            System.Web.HttpContext.Current.Response.End();
+        } 
+        #endregion
+
+        /// <summary>
+        /// 回复文本
+        /// </summary>
+        /// <param name="FromUserName">发送给谁(openid)</param>
+        /// <param name="ToUserName">来自谁(公众账号ID)</param>
+        /// <param name="Content">回复类型文本</param>
+        /// <returns>拼凑的XML</returns>
+        public static string ReText(string FromUserName, string ToUserName, string Content)
+        {
+            string XML = "<xml><ToUserName><![CDATA[" + FromUserName + "]]></ToUserName><FromUserName><![CDATA[" + ToUserName + "]]></FromUserName>";//发送给谁(openid)，来自谁(公众账号ID)
+            XML += "<CreateTime>" + ConvertDateTimeInt(DateTime.Now) + "</CreateTime>";//回复时间戳
+            XML += "<MsgType><![CDATA[text]]></MsgType>";//回复类型文本
+            XML += "<Content><![CDATA[" + Content + "]]></Content><FuncFlag>0</FuncFlag></xml>";//回复内容 FuncFlag设置为1的时候，自动星标刚才接收到的消息，适合活动统计使用
+            return XML;
+        }
+
+        /// <summary>
+        /// DateTime时间格式转换为Unix时间戳格式
+        /// </summary>
+        /// <param name="time"> DateTime时间格式</param>
+        /// <returns>Unix时间戳格式</returns>
+        public static int ConvertDateTimeInt(System.DateTime time)
+        {
+            System.DateTime startTime = TimeZone.CurrentTimeZone.ToLocalTime(new System.DateTime(1970, 1, 1));
+            return (int)(time - startTime).TotalSeconds;
+        }
+
+        #region 暂时放弃
         ///// <summary>
         ///// 处理信息并应答
         ///// </summary>
@@ -208,28 +287,9 @@ namespace WeChat.Controllers
         //            }
         //        }
         //    }
-        //}
+        //} 
+        #endregion
 
 
-        
-        //public void Wx2(string signature, string timestamp, string nonce, string echostr)
-        //{
-        //    Console.WriteLine(signature + "," + timestamp + "," + nonce + "," + echostr);
-        //    //效验请求
-        //    bool signatureFlag = CheckWeChatServer(signature, timestamp, nonce, echostr);
-        //    if (signatureFlag)
-        //    {
-        //        System.Web.HttpContext.Current.Response.Write(echostr);
-        //        System.Web.HttpContext.Current.Response.End();
-        //    }
-        //    else
-        //    {
-        //        System.Web.HttpContext.Current.Response.Write("签名验证错误！");
-        //        System.Web.HttpContext.Current.Response.End();
-        //    }
-
-        //    // ProcessRequest(System.Web.HttpContext.Current);
-        //    // Stream s = VqiRequest.GetInputStream();
-        //}
     }
 }
