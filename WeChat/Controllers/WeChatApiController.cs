@@ -136,16 +136,10 @@ namespace WeChat.Controllers
             switch (newsModel.MsgType)
             {
                 case "text"://文本回复
-                    XML = ReText(newsModel.FromUserName, newsModel.ToUserName, newsModel.Content);
-                    //XML = @"<xml>
-                    //       <ToUserName><![CDATA[oUwty1vGG0NycDWTDSYeld2ECx5A]]></ToUserName>
-                    //     <FromUserName><![CDATA[gh_1934ee1565bd]]></FromUserName>
-                    //     <CreateTime>1545477435</CreateTime>
-                    //     <MsgType><![CDATA[text]]></MsgType>
-                    //     <Content><![CDATA[/::)]]></Content>
-                    //     <MsgId>6637775040451722077</MsgId>
-                    //       </xml>";
-                    ////TOKEN.com.wxapi.ResponseMessage.GetText(newsModel.FromUserName, newsModel.ToUserName, newsModel.Content);
+                    XML = ReText(newsModel.FromUserName, newsModel.ToUserName, newsModel.Content);                   
+                    break;
+                case "image"://图片回复
+                    XML = ReImage(newsModel.FromUserName, newsModel.ToUserName, newsModel.PicUrl);
                     break;
                 default://默认回复
                     break;
@@ -172,6 +166,19 @@ namespace WeChat.Controllers
             return XML;
         }
         #endregion
+
+        #region 图片格式
+        public static string ReImage(string FromUserName, string ToUserName, string PicUrl)
+        {
+            string XML = "<xml><ToUserName><![CDATA[" + FromUserName + "]]></ToUserName><FromUserName><![CDATA[" + ToUserName + "]]></FromUserName>";//发送给谁(openid)，来自谁(公众账号ID)
+            XML += "<CreateTime>" + ConvertDateTimeInt(DateTime.Now) + "</CreateTime>";//回复时间戳
+            XML += "<MsgType><![CDATA[image]]></MsgType>";//回复类型文本
+            XML += "<PicUrl><![CDATA[" + PicUrl + "]]></PicUrl>";
+            XML += "<FuncFlag>0</FuncFlag></xml>";//回复内容 FuncFlag设置为1的时候，自动星标刚才接收到的消息，适合活动统计使用
+            return XML;
+        } 
+        #endregion
+
 
         #region 时间戳处理
         /// <summary>
