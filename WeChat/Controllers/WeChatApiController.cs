@@ -152,9 +152,10 @@ namespace WeChat.Controllers
             }
             System.Web.HttpContext.Current.Response.Write(XML);
             System.Web.HttpContext.Current.Response.End();
-        } 
+        }
         #endregion
 
+        #region 文本格式
         /// <summary>
         /// 回复文本
         /// </summary>
@@ -170,7 +171,9 @@ namespace WeChat.Controllers
             XML += "<Content><![CDATA[" + Content + "]]></Content><FuncFlag>0</FuncFlag></xml>";//回复内容 FuncFlag设置为1的时候，自动星标刚才接收到的消息，适合活动统计使用
             return XML;
         }
+        #endregion
 
+        #region 时间戳处理
         /// <summary>
         /// DateTime时间格式转换为Unix时间戳格式
         /// </summary>
@@ -180,9 +183,10 @@ namespace WeChat.Controllers
         {
             System.DateTime startTime = TimeZone.CurrentTimeZone.ToLocalTime(new System.DateTime(1970, 1, 1));
             return (int)(time - startTime).TotalSeconds;
-        }
+        } 
+        #endregion
 
-        #region 暂时放弃
+        #region 暂时放弃/参考的代码片
         ///// <summary>
         ///// 处理信息并应答
         ///// </summary>
