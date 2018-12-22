@@ -170,10 +170,14 @@ namespace WeChat.Controllers
         #region 图片格式
         public static string ReImage(string FromUserName, string ToUserName, string PicUrl)
         {
+            //回复用户图片信息，需要使用素材管理，必须含有参数 access_token，media_id
+            //现在公众号接收到消息，先回复文本消息。
             string XML = "<xml><ToUserName><![CDATA[" + FromUserName + "]]></ToUserName><FromUserName><![CDATA[" + ToUserName + "]]></FromUserName>";//发送给谁(openid)，来自谁(公众账号ID)
             XML += "<CreateTime>" + ConvertDateTimeInt(DateTime.Now) + "</CreateTime>";//回复时间戳
-            XML += "<MsgType><![CDATA[image]]></MsgType>";//回复类型文本
-            XML += "<PicUrl><![CDATA[" + PicUrl + "]]></PicUrl>";
+            //XML += "<MsgType><![CDATA[image]]></MsgType>";//回复类型文本
+            //XML += "<PicUrl><![CDATA[" + PicUrl + "]]></PicUrl>";
+            XML += "<MsgType><![CDATA[text]]></MsgType>";
+            XML += "<Content><![CDATA[亲，已经接收到您的图片，图片消息回复接口暂时未开通。]]></Content>";
             XML += "<FuncFlag>0</FuncFlag></xml>";//回复内容 FuncFlag设置为1的时候，自动星标刚才接收到的消息，适合活动统计使用
             return XML;
         } 
