@@ -89,8 +89,6 @@ namespace WeChat.Controllers
             }
         }
 
-
-
         #region 服务器接入签名计算和比对
         public bool CheckWeChatServer(string signature, string timestamp, string nonce, string echostr)
         {
@@ -141,6 +139,9 @@ namespace WeChat.Controllers
                 case "image"://图片回复
                     XML = ReImage(newsModel.FromUserName, newsModel.ToUserName, newsModel.PicUrl);
                     break;
+                case "event"://事件回复
+                    XML = ReEvent(newsModel.FromUserName, newsModel.ToUserName, newsModel.Event);
+                    break;
                 default://默认回复
                     break;
             }
@@ -180,9 +181,26 @@ namespace WeChat.Controllers
             XML += "<Content><![CDATA[亲，已经接收到您的图片，图片消息回复接口暂时未开通。]]></Content>";
             XML += "<FuncFlag>0</FuncFlag></xml>";//回复内容 FuncFlag设置为1的时候，自动星标刚才接收到的消息，适合活动统计使用
             return XML;
-        } 
+        }
         #endregion
 
+        #region 事件格式
+        public static string ReEvent(string FromUserName, string ToUserName, string Event)
+        {
+            
+            string XML = "<xml><ToUserName><![CDATA[" + FromUserName + "]]></ToUserName><FromUserName><![CDATA[" + ToUserName + "]]></FromUserName>";//发送给谁(openid)，来自谁(公众账号ID)
+            XML += "<CreateTime>" + ConvertDateTimeInt(DateTime.Now) + "</CreateTime>";//回复时间戳
+            XML += "<MsgType><![CDATA[text]]></MsgType>";//回复类型文本
+            if (Event == "subscribe")
+            {
+                XML += "<Content><![CDATA[感谢关注，茫茫人海中，能与您在此相识是我的荣幸。]]></Content><FuncFlag>0</FuncFlag></xml>";//回复内容 FuncFlag设置为1的时候，自动星标刚才接收到的消息，适合活动统计使用
+            }
+            else {
+                XML += "<Content><![CDATA[谢谢您的包容，祝您生活愉快，身体健康。]]></Content><FuncFlag>0</FuncFlag></xml>";
+            }
+            return XML;
+        } 
+        #endregion
 
         #region 时间戳处理
         /// <summary>
