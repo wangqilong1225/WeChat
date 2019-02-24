@@ -43,8 +43,7 @@ namespace WeChat.Controllers
                     System.Web.HttpContext.Current.Response.End();
                 }
             }
-            //Post请求处理
-            
+            //Post请求处理           
             if (System.Web.HttpContext.Current.Request.HttpMethod.ToUpper() == "POST")
             {
                 Stream requestStream = System.Web.HttpContext.Current.Request.InputStream;
